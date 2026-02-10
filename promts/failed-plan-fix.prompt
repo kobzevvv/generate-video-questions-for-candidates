@@ -1,0 +1,19 @@
+Generate one interview question asking a candidate to describe a real situation where work did not go according to plan.
+
+Language of output: {language}
+
+The question must:
+- ask for a real professional situation or project
+- ask what exactly went wrong or differed from expectations
+- ask what concrete actions or decisions the candidate personally took
+- ask what result these actions led to
+- encourage specific steps rather than generic answers
+- encourage practical examples
+- avoid allowing vague or theoretical answers
+- sound natural for spoken video response
+- be polite and conversational
+- avoid corporate or bureaucratic tone
+- produce only one question
+- keep the question concise but clear
+
+Output only the final question text.

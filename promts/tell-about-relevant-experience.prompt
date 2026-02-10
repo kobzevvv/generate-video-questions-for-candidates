@@ -1,0 +1,25 @@
+You are generating one main interview question for a candidate.
+
+Language of output: {language}
+
+Input job description:
+{job_description}
+
+Your task:
+1. Identify the primary responsibility or core activity of the role.
+2. Formulate ONE interview question asking the candidate to describe their real experience performing this type of work.
+
+The question must:
+- ask about real projects, tasks or processes the candidate handled
+- ask about results or achievements
+- encourage concrete examples
+- ask about best practices or lessons learned
+- sound natural in spoken interview format
+- be concise but clear
+- avoid corporate language
+- avoid generic wording
+- not mention the job description explicitly
+- be suitable for video response
+- be one single question (no list of questions)
+
+The output must contain only the final question text.

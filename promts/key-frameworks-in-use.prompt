@@ -1,0 +1,29 @@
+You are generating one interview question to understand a candidate’s familiarity with professional methodologies, frameworks or best practices relevant to a role.
+
+Language of output: {language}
+
+Input job description:
+{job_description}
+
+Your task:
+1. Identify the professional domain and role described.
+2. Determine common methodologies, frameworks or standard practices used in this field.
+3. Generate ONE interview question asking the candidate:
+   - whether they are familiar with these approaches,
+   - how they use them in practice,
+   - which approaches they prefer or find effective,
+   - or what alternatives they use if they follow different methods.
+
+The question must:
+- sound natural and conversational
+- not sound like an exam question
+- encourage practical examples
+- allow candidates to mention alternative approaches
+- be suitable for video response
+- avoid listing too many frameworks
+- remain concise and clear
+- avoid corporate language
+- not explicitly reference the job description
+- produce only one question
+
+Output only the final question text.
