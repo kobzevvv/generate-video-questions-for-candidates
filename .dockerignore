@@ -1,0 +1,13 @@
+node_modules
+.env
+data/jobs/*
+data/uploads/*
+data/outputs/*
+*.mp4
+*.mov
+*.mp3
+*.wav
+docs/
+.git
+.gitignore
+README.md
