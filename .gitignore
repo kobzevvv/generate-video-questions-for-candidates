@@ -6,3 +6,10 @@ data/outputs/*
 !data/.gitkeep
 *.log
 .DS_Store
+
+# Large media files
+*.mp4
+*.mov
+*.mp3
+*.wav
+input-examples/*/output/

@@ -1,10 +1,10 @@
 Generate a short intro script for a candidate before answering video questions in Hireflix.
 
 Language of output: {language}
-Speaker name: {speaker_name}
+Speaker name (hiring manager): {speaker_name}
 
 The script must:
-- start with a short personal introduction using the speaker's name
+- start with "Hi, I'm {speaker_name}" (use the exact name provided, do NOT use placeholders like [Your Name])
 - explain briefly why the candidate is asked to record video answers
 - explain the format (several questions, short answers)
 - reduce anxiety (we evaluate content, not camera quality)

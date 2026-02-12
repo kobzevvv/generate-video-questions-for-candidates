@@ -21,7 +21,17 @@ router.post('/', (req, res) => {
       voice,
       language,
       speaker_name,
-      audio_url // For lip-sync when audio is hosted externally
+      audio_url, // For lip-sync when audio is hosted externally
+      // Hiring manager info (can be provided directly or loaded from file)
+      gender,
+      accent,
+      age,
+      hiring_manager_info, // Optional: { name, language, accent, gender, age }
+      // Input directory for job-specific assets (video, hiring-manager-info.md)
+      job_input_dir, // e.g. "Sales-Manager-B2B-EV-Charging-Stations"
+      // Quality mode: "template" (basic), "lipsync" (premium), "audio_only"
+      quality_mode,
+      locale // for template selection, e.g. "en", "ru", "es"
     } = req.body;
 
     // Validation
@@ -31,11 +41,7 @@ router.post('/', (req, res) => {
       });
     }
 
-    if (!video_url && !video_path) {
-      return res.status(400).json({
-        error: 'Either video_url or video_path is required'
-      });
-    }
+    // Note: video_url is now optional - can generate audio-only
 
     // Validate template if provided
     if (prompt_template_id) {
@@ -47,6 +53,14 @@ router.post('/', (req, res) => {
         });
       }
     }
+
+    // Merge hiring manager info from direct params or nested object
+    const hm = hiring_manager_info || {};
+    const resolvedSpeakerName = speaker_name || hm.name || null;
+    const resolvedGender = gender || hm.gender || null;
+    const resolvedAccent = accent || hm.accent || null;
+    const resolvedAge = age || hm.age || null;
+    const resolvedLanguage = language || hm.language || config.defaultLanguage;
 
     // Create job
     const jobId = `job_${uuidv4().slice(0, 8)}`;
@@ -61,10 +75,22 @@ router.post('/', (req, res) => {
       script: script || null,
       job_description: job_description || null,
       prompt_template_id: prompt_template_id || null,
-      voice: voice || config.defaultVoice,
-      language: language || config.defaultLanguage,
-      speaker_name: speaker_name || null,
-      audio_url: audio_url || null
+      voice: voice || null, // null = auto-select based on gender/accent
+      language: resolvedLanguage,
+      speaker_name: resolvedSpeakerName,
+      audio_url: audio_url || null,
+
+      // Voice matching parameters
+      gender: resolvedGender,
+      accent: resolvedAccent,
+      age: resolvedAge,
+
+      // Input directory for job-specific assets
+      job_input_dir: job_input_dir || null,
+
+      // Quality mode: "template" (basic), "lipsync" (premium), "audio_only"
+      quality_mode: quality_mode || 'template',
+      locale: locale || null
     };
 
     saveJob(jobId, job);
@@ -72,6 +98,7 @@ router.post('/', (req, res) => {
     res.status(201).json({
       job_id: jobId,
       status: job.status,
+      quality_mode: job.quality_mode,
       created_at: job.created_at,
       message: 'Job created and queued for processing'
     });
@@ -95,6 +122,7 @@ router.get('/:id', (req, res) => {
     const response = {
       job_id: job.job_id,
       status: job.status,
+      quality_mode: job.quality_mode || 'template',
       created_at: job.created_at
     };
 
@@ -102,11 +130,29 @@ router.get('/:id', (req, res) => {
     if (job.completed_at) response.completed_at = job.completed_at;
     if (job.failed_at) response.failed_at = job.failed_at;
 
-    if (job.generated_script) response.generated_script = job.generated_script;
     if (job.generated_questions) response.generated_questions = job.generated_questions;
+    if (job.selected_voice) response.selected_voice = job.selected_voice;
 
-    if (job.output_video_url) response.output_video_url = job.output_video_url;
-    if (job.output_audio_url) response.output_audio_url = job.output_audio_url;
+    // Output files
+    if (job.outputs) response.outputs = job.outputs;
+    if (job.video_files) {
+      response.video_files = job.video_files.map(f => ({
+        index: f.index,
+        template_id: f.template_id,
+        video_url: f.video_url,
+        audio_url: f.audio_url,
+        text: f.text,
+        error: f.error || undefined
+      }));
+    }
+    if (job.audio_files) {
+      response.audio_files = job.audio_files.map(f => ({
+        index: f.index,
+        template_id: f.template_id,
+        url: f.audio_url,
+        text: f.text
+      }));
+    }
 
     if (job.error) response.error = job.error;
     if (job.note) response.note = job.note;

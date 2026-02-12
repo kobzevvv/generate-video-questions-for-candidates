@@ -1,20 +1,21 @@
 const fs = require('fs');
-const path = require('path');
 const https = require('https');
 const config = require('../config');
 
-const SYNCLABS_API_BASE = 'https://api.sync.so/v2';
+// Using fal.ai API for Sync Labs lipsync model
+const FAL_API_BASE = 'https://fal.run/fal-ai/sync-lipsync/v2';
+const FAL_QUEUE_BASE = 'https://queue.fal.run/fal-ai/sync-lipsync/v2';
 
-async function apiRequest(method, endpoint, body = null) {
+function makeRequest(url, method, body, apiKey) {
   return new Promise((resolve, reject) => {
-    const url = new URL(endpoint, SYNCLABS_API_BASE);
+    const urlObj = new URL(url);
 
     const options = {
       method,
-      hostname: url.hostname,
-      path: url.pathname + url.search,
+      hostname: urlObj.hostname,
+      path: urlObj.pathname + urlObj.search,
       headers: {
-        'x-api-key': config.synclabsApiKey,
+        'Authorization': `Key ${apiKey}`,
         'Content-Type': 'application/json'
       }
     };
@@ -26,12 +27,16 @@ async function apiRequest(method, endpoint, body = null) {
         try {
           const parsed = JSON.parse(data);
           if (res.statusCode >= 400) {
-            reject(new Error(`Sync Labs API error: ${res.statusCode} - ${JSON.stringify(parsed)}`));
+            reject(new Error(`fal.ai API error: ${res.statusCode} - ${JSON.stringify(parsed)}`));
           } else {
             resolve(parsed);
           }
         } catch (e) {
-          reject(new Error(`Failed to parse response: ${data}`));
+          if (res.statusCode >= 400) {
+            reject(new Error(`fal.ai API error: ${res.statusCode} - ${data}`));
+          } else {
+            reject(new Error(`Failed to parse response: ${data}`));
+          }
         }
       });
     });
@@ -45,59 +50,99 @@ async function apiRequest(method, endpoint, body = null) {
   });
 }
 
+/**
+ * Create a lip-sync job using fal.ai queue API
+ */
 async function createLipSyncJob(options) {
   const {
     videoUrl,
     audioUrl,
-    model = 'sync-1.7.1-beta',
-    webhookUrl = null
+    model = 'lipsync-2', // or 'lipsync-2-pro'
+    syncMode = 'cut_off' // cut_off, loop, bounce, silence, remap
   } = options;
 
   const body = {
+    video_url: videoUrl,
+    audio_url: audioUrl,
     model,
-    input: [
-      { type: 'video', url: videoUrl },
-      { type: 'audio', url: audioUrl }
-    ]
+    sync_mode: syncMode
   };
 
-  if (webhookUrl) {
-    body.webhookUrl = webhookUrl;
-  }
-
-  const response = await apiRequest('POST', '/generate', body);
+  // Use queue API for async processing
+  const response = await makeRequest(
+    FAL_QUEUE_BASE,
+    'POST',
+    body,
+    config.falApiKey
+  );
 
   return {
-    jobId: response.id,
+    requestId: response.request_id,
+    status: response.status || 'IN_QUEUE',
+    response
+  };
+}
+
+/**
+ * Get job status from fal.ai
+ */
+async function getLipSyncJobStatus(requestId) {
+  const statusUrl = `https://queue.fal.run/fal-ai/sync-lipsync/v2/requests/${requestId}/status`;
+
+  const response = await makeRequest(
+    statusUrl,
+    'GET',
+    null,
+    config.falApiKey
+  );
+
+  return {
+    requestId,
     status: response.status,
     response
   };
 }
 
-async function getLipSyncJobStatus(jobId) {
-  const response = await apiRequest('GET', `/generate/${jobId}`);
+/**
+ * Get completed job result
+ */
+async function getLipSyncResult(requestId) {
+  const resultUrl = `https://queue.fal.run/fal-ai/sync-lipsync/v2/requests/${requestId}`;
+
+  const response = await makeRequest(
+    resultUrl,
+    'GET',
+    null,
+    config.falApiKey
+  );
 
   return {
-    jobId: response.id,
-    status: response.status,
-    outputUrl: response.outputUrl || null,
-    error: response.error || null,
+    requestId,
+    outputUrl: response.video?.url || null,
+    video: response.video,
     response
   };
 }
 
-async function waitForLipSyncCompletion(jobId, maxWaitMs = 600000, pollIntervalMs = 5000) {
+/**
+ * Wait for lip-sync job to complete
+ */
+async function waitForLipSyncCompletion(requestId, maxWaitMs = 600000, pollIntervalMs = 5000) {
   const startTime = Date.now();
 
   while (Date.now() - startTime < maxWaitMs) {
-    const status = await getLipSyncJobStatus(jobId);
+    const status = await getLipSyncJobStatus(requestId);
+
+    console.log(`  [fal.ai] Status: ${status.status}`);
 
     if (status.status === 'COMPLETED') {
-      return status;
+      // Get the result
+      const result = await getLipSyncResult(requestId);
+      return result;
     }
 
     if (status.status === 'FAILED') {
-      throw new Error(`Lip-sync job failed: ${status.error || 'Unknown error'}`);
+      throw new Error(`Lip-sync job failed: ${JSON.stringify(status.response)}`);
     }
 
     await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
@@ -106,11 +151,49 @@ async function waitForLipSyncCompletion(jobId, maxWaitMs = 600000, pollIntervalM
   throw new Error(`Lip-sync job timed out after ${maxWaitMs}ms`);
 }
 
+/**
+ * Run lip-sync synchronously (for shorter videos)
+ */
+async function runLipSyncSync(options) {
+  const {
+    videoUrl,
+    audioUrl,
+    model = 'lipsync-2',
+    syncMode = 'cut_off'
+  } = options;
+
+  const body = {
+    video_url: videoUrl,
+    audio_url: audioUrl,
+    model,
+    sync_mode: syncMode
+  };
+
+  // Direct synchronous call (blocks until complete, good for short videos)
+  const response = await makeRequest(
+    FAL_API_BASE,
+    'POST',
+    body,
+    config.falApiKey
+  );
+
+  return {
+    outputUrl: response.video?.url || null,
+    video: response.video,
+    response
+  };
+}
+
+/**
+ * Download video from URL
+ */
 async function downloadOutput(url, destPath) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(destPath);
 
-    https.get(url, (response) => {
+    const protocol = url.startsWith('https') ? https : require('http');
+
+    protocol.get(url, (response) => {
       if (response.statusCode === 301 || response.statusCode === 302) {
         file.close();
         fs.unlinkSync(destPath);
@@ -141,6 +224,8 @@ async function downloadOutput(url, destPath) {
 module.exports = {
   createLipSyncJob,
   getLipSyncJobStatus,
+  getLipSyncResult,
   waitForLipSyncCompletion,
+  runLipSyncSync,
   downloadOutput
 };

@@ -2,148 +2,371 @@ const path = require('path');
 const fs = require('fs');
 const config = require('../config');
 const { saveJob, downloadFile } = require('../utils/fileUtils');
-const { generateQuestions, combineQuestionsToScript } = require('../services/questionGenerator');
+const { generateQuestions } = require('../services/questionGenerator');
 const { generateSpeech } = require('../services/tts');
 const { createLipSyncJob, waitForLipSyncCompletion, downloadOutput } = require('../services/lipSync');
+const { overlayAudio, findTemplateVideo, hasAllTemplates } = require('../services/videoOverlay');
+
+/**
+ * Quality modes:
+ * - "template" (basic): Use pre-generated template videos + overlay audio (cheap, fast)
+ * - "lipsync" (premium): Full lip-sync generation for each video (expensive, high quality)
+ * - "audio_only": Just generate audio, no video
+ */
+
+/**
+ * Find source video for a job (used in lipsync mode)
+ */
+function findSourceVideo(job) {
+  if (job.video_path && fs.existsSync(job.video_path)) {
+    return { path: job.video_path, type: 'local' };
+  }
+
+  if (job.video_url) {
+    return { url: job.video_url, type: 'url' };
+  }
+
+  if (job.job_input_dir) {
+    const jobVideoDir = path.join(config.inputExamplesDir, job.job_input_dir);
+    if (fs.existsSync(jobVideoDir)) {
+      const videoFiles = fs.readdirSync(jobVideoDir)
+        .filter(f => /\.(mp4|mov|webm)$/i.test(f));
+      if (videoFiles.length > 0) {
+        return {
+          path: path.join(jobVideoDir, videoFiles[0]),
+          type: 'local',
+          relativePath: `${job.job_input_dir}/${videoFiles[0]}`
+        };
+      }
+    }
+  }
+
+  const defaultVideoDir = path.join(config.inputExamplesDir, 'default-input');
+  if (fs.existsSync(defaultVideoDir)) {
+    const videoFiles = fs.readdirSync(defaultVideoDir)
+      .filter(f => /\.(mp4|mov|webm)$/i.test(f));
+    if (videoFiles.length > 0) {
+      return {
+        path: path.join(defaultVideoDir, videoFiles[0]),
+        type: 'local',
+        relativePath: `default-input/${videoFiles[0]}`
+      };
+    }
+  }
+
+  return null;
+}
+
+function getPublicUrl(relativePath, type = 'outputs') {
+  if (!config.publicBaseUrl) {
+    return null;
+  }
+  return `${config.publicBaseUrl}/${type}/${relativePath}`;
+}
+
+/**
+ * Process videos using template overlay (basic/cheap mode)
+ */
+async function processWithTemplates(jobId, audioFiles, locale, outputDir) {
+  const videoFiles = [];
+
+  for (const audioFile of audioFiles) {
+    const templatePath = findTemplateVideo(audioFile.template_id, locale);
+
+    if (!templatePath) {
+      console.log(`[${jobId}]   No template for: ${audioFile.template_id}, skipping video`);
+      videoFiles.push({
+        index: audioFile.index,
+        template_id: audioFile.template_id,
+        text: audioFile.text,
+        audio_url: audioFile.audio_url,
+        video_file: null,
+        error: `No template video found for ${audioFile.template_id}`
+      });
+      continue;
+    }
+
+    const videoFileName = `${jobId}_${String(audioFile.index).padStart(2, '0')}_${audioFile.template_id}.mp4`;
+    const videoPath = path.join(outputDir, videoFileName);
+
+    console.log(`[${jobId}]   Overlay ${audioFile.index}: ${audioFile.template_id}`);
+
+    try {
+      await overlayAudio({
+        templateVideoPath: templatePath,
+        audioPath: audioFile.audio_path,
+        outputPath: videoPath
+      });
+
+      videoFiles.push({
+        index: audioFile.index,
+        template_id: audioFile.template_id,
+        text: audioFile.text,
+        audio_url: audioFile.audio_url,
+        video_file: videoFileName,
+        video_path: videoPath,
+        video_url: `/outputs/${videoFileName}`,
+        mode: 'template'
+      });
+
+      console.log(`[${jobId}]   Done: ${videoFileName}`);
+
+    } catch (err) {
+      console.error(`[${jobId}]   Overlay failed: ${err.message}`);
+      videoFiles.push({
+        index: audioFile.index,
+        template_id: audioFile.template_id,
+        text: audioFile.text,
+        audio_url: audioFile.audio_url,
+        video_file: null,
+        error: err.message
+      });
+    }
+  }
+
+  return videoFiles;
+}
+
+/**
+ * Process videos using full lip-sync (premium mode)
+ */
+async function processWithLipSync(jobId, audioFiles, videoUrl, outputDir) {
+  const videoFiles = [];
+
+  for (const audioFile of audioFiles) {
+    const audioUrl = getPublicUrl(audioFile.audio_file, 'outputs');
+    const videoFileName = `${jobId}_${String(audioFile.index).padStart(2, '0')}_${audioFile.template_id}.mp4`;
+    const videoPath = path.join(outputDir, videoFileName);
+
+    console.log(`[${jobId}]   Lip-sync ${audioFile.index}/${audioFiles.length}: ${audioFile.template_id}`);
+    console.log(`[${jobId}]     Audio: ${audioUrl}`);
+
+    try {
+      const lipSyncResult = await createLipSyncJob({
+        videoUrl,
+        audioUrl
+      });
+
+      console.log(`[${jobId}]     fal.ai request: ${lipSyncResult.requestId}`);
+
+      const completed = await waitForLipSyncCompletion(
+        lipSyncResult.requestId,
+        config.lipSyncTimeout,
+        config.lipSyncPollInterval
+      );
+
+      await downloadOutput(completed.outputUrl, videoPath);
+
+      videoFiles.push({
+        index: audioFile.index,
+        template_id: audioFile.template_id,
+        text: audioFile.text,
+        audio_url: audioFile.audio_url,
+        video_file: videoFileName,
+        video_path: videoPath,
+        video_url: `/outputs/${videoFileName}`,
+        lipsync_request_id: lipSyncResult.requestId,
+        mode: 'lipsync'
+      });
+
+      console.log(`[${jobId}]     Done: ${videoFileName}`);
+
+    } catch (err) {
+      console.error(`[${jobId}]     Lip-sync failed: ${err.message}`);
+      videoFiles.push({
+        index: audioFile.index,
+        template_id: audioFile.template_id,
+        text: audioFile.text,
+        audio_url: audioFile.audio_url,
+        video_file: null,
+        error: err.message
+      });
+    }
+  }
+
+  return videoFiles;
+}
 
 async function processJob(job) {
   const jobId = job.job_id;
-  console.log(`[${jobId}] Starting job processing...`);
+  const qualityMode = job.quality_mode || 'template'; // template, lipsync, audio_only
+
+  console.log(`[${jobId}] Starting job processing (mode: ${qualityMode})...`);
 
   try {
-    // Update status to processing
     job.status = 'processing';
     job.started_at = new Date().toISOString();
+    job.quality_mode = qualityMode;
     saveJob(jobId, job);
 
-    // Step 1: Determine script
-    let script = job.script;
-    let generatedQuestions = null;
+    // Step 1: Generate questions
+    let questions = [];
 
-    if (!script) {
-      console.log(`[${jobId}] No script provided, generating questions...`);
+    if (job.script) {
+      questions = [{
+        template_id: 'custom',
+        text: job.script
+      }];
+    } else {
+      console.log(`[${jobId}] Generating questions...`);
 
       if (!job.job_description) {
         throw new Error('Either script or job_description is required');
       }
 
-      generatedQuestions = await generateQuestions({
+      questions = await generateQuestions({
         jobDescription: job.job_description,
         language: job.language || config.defaultLanguage,
         speakerName: job.speaker_name,
         templateIds: job.prompt_template_id ? [job.prompt_template_id] : null
       });
 
-      script = combineQuestionsToScript(generatedQuestions);
-      job.generated_questions = generatedQuestions;
-      job.generated_script = script;
+      questions = questions.filter(q => q.text && !q.error);
+
+      if (questions.length === 0) {
+        throw new Error('Failed to generate any questions');
+      }
+
+      job.generated_questions = questions;
       saveJob(jobId, job);
 
-      console.log(`[${jobId}] Generated ${generatedQuestions.length} questions`);
+      console.log(`[${jobId}] Generated ${questions.length} questions`);
     }
 
-    if (!script || script.trim().length === 0) {
-      throw new Error('Failed to generate script');
+    // Step 2: Generate audio for each question
+    console.log(`[${jobId}] Generating audio for ${questions.length} questions...`);
+
+    const audioFiles = [];
+    let selectedVoice = null;
+
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i];
+      const index = String(i + 1).padStart(2, '0');
+      const templateId = question.template_id || 'question';
+      const audioFileName = `${jobId}_${index}_${templateId}.mp3`;
+      const audioPath = path.join(config.outputsDir, audioFileName);
+
+      console.log(`[${jobId}]   Audio ${index}/${questions.length}: ${templateId}`);
+
+      const ttsResult = await generateSpeech({
+        text: question.text,
+        voice: job.voice || selectedVoice,
+        gender: job.gender,
+        accent: job.accent,
+        age: job.age,
+        outputPath: audioPath
+      });
+
+      if (!selectedVoice) {
+        selectedVoice = ttsResult.voice;
+        console.log(`[${jobId}]   Voice: ${ttsResult.voice} (${ttsResult.voiceProfile?.gender})`);
+      }
+
+      audioFiles.push({
+        index: i + 1,
+        template_id: templateId,
+        text: question.text,
+        audio_file: audioFileName,
+        audio_path: audioPath,
+        audio_url: `/outputs/${audioFileName}`,
+        voice: ttsResult.voice
+      });
     }
 
-    // Step 2: Generate speech audio
-    console.log(`[${jobId}] Generating speech...`);
-    const audioPath = path.join(config.outputsDir, `${jobId}_audio.mp3`);
-
-    const ttsResult = await generateSpeech({
-      text: script,
-      voice: job.voice || config.defaultVoice,
-      outputPath: audioPath
-    });
-
-    job.audio_path = audioPath;
-    job.tts_result = ttsResult;
-    saveJob(jobId, job);
-    console.log(`[${jobId}] Speech generated: ${audioPath}`);
-
-    // Step 3: Prepare video
-    let videoPath = job.video_path;
-
-    if (!videoPath && job.video_url) {
-      console.log(`[${jobId}] Downloading video...`);
-      videoPath = path.join(config.uploadsDir, `${jobId}_input.mp4`);
-      await downloadFile(job.video_url, videoPath);
-      job.video_path = videoPath;
-      saveJob(jobId, job);
-      console.log(`[${jobId}] Video downloaded: ${videoPath}`);
-    }
-
-    if (!videoPath || !fs.existsSync(videoPath)) {
-      throw new Error('Video file not found');
-    }
-
-    // Step 4: Apply lip-sync
-    // Note: Sync Labs requires URLs, so for local files we need to serve them
-    // For MVP, we assume video_url and audio need to be accessible URLs
-    // In production, upload to S3/GCS or use a file serving endpoint
-
-    console.log(`[${jobId}] Starting lip-sync...`);
-
-    // For MVP: if we have URLs, use them directly
-    // Otherwise, this needs a file server (Stage 2 improvement)
-    const videoUrl = job.video_url;
-    const audioUrl = job.audio_url; // Would need to be set if audio is uploaded somewhere
-
-    if (!videoUrl) {
-      // MVP limitation: we need a video URL for Sync Labs
-      console.log(`[${jobId}] MVP limitation: video_url required for lip-sync`);
-      console.log(`[${jobId}] Skipping lip-sync, returning audio only...`);
-
-      job.status = 'completed';
-      job.completed_at = new Date().toISOString();
-      job.output_audio_url = `/outputs/${jobId}_audio.mp3`;
-      job.note = 'Lip-sync skipped: video_url required. Audio generated successfully.';
-      saveJob(jobId, job);
-
-      return job;
-    }
-
-    // For audio, we need a publicly accessible URL
-    // In production, upload to cloud storage
-    // For MVP, we'll note this limitation
-    if (!audioUrl) {
-      console.log(`[${jobId}] MVP limitation: need to serve audio publicly for lip-sync`);
-      console.log(`[${jobId}] Set audio_url in job or implement file serving`);
-
-      job.status = 'completed';
-      job.completed_at = new Date().toISOString();
-      job.output_audio_url = `/outputs/${jobId}_audio.mp3`;
-      job.note = 'Lip-sync pending: audio needs public URL. See Stage 2 for file serving.';
-      saveJob(jobId, job);
-
-      return job;
-    }
-
-    // Full lip-sync flow when URLs are available
-    const lipSyncResult = await createLipSyncJob({
-      videoUrl,
-      audioUrl
-    });
-
-    job.lipsync_job_id = lipSyncResult.jobId;
+    job.audio_files = audioFiles;
+    job.selected_voice = selectedVoice;
     saveJob(jobId, job);
 
-    console.log(`[${jobId}] Lip-sync job created: ${lipSyncResult.jobId}`);
+    console.log(`[${jobId}] Generated ${audioFiles.length} audio files`);
 
-    // Wait for completion
-    const completedLipSync = await waitForLipSyncCompletion(lipSyncResult.jobId);
+    // Step 3: Generate videos based on quality mode
+    let videoFiles = [];
 
-    // Download result
-    const outputPath = path.join(config.outputsDir, `${jobId}_output.mp4`);
-    await downloadOutput(completedLipSync.outputUrl, outputPath);
+    if (qualityMode === 'audio_only') {
+      console.log(`[${jobId}] Audio-only mode, skipping video generation`);
 
+    } else if (qualityMode === 'template') {
+      // Basic mode: overlay audio on template videos
+      const locale = job.locale || job.language || 'en';
+      const templateIds = audioFiles.map(a => a.template_id);
+
+      if (hasAllTemplates(templateIds, locale)) {
+        console.log(`[${jobId}] Using template overlay mode...`);
+        videoFiles = await processWithTemplates(jobId, audioFiles, locale, config.outputsDir);
+      } else {
+        console.log(`[${jobId}] Templates not found, falling back to audio-only`);
+        job.note = 'Template videos not found. Audio files generated only.';
+      }
+
+    } else if (qualityMode === 'lipsync') {
+      // Premium mode: full lip-sync
+      const videoSource = findSourceVideo(job);
+
+      if (!videoSource) {
+        console.log(`[${jobId}] No video source for lip-sync, falling back to audio-only`);
+        job.note = 'No video source found for lip-sync. Audio files generated only.';
+      } else if (!config.publicBaseUrl) {
+        console.log(`[${jobId}] PUBLIC_BASE_URL not set, cannot use lip-sync`);
+        job.note = 'Set PUBLIC_BASE_URL for lip-sync. Audio files generated only.';
+      } else if (!config.falApiKey) {
+        console.log(`[${jobId}] FAL_API_KEY not set, cannot use lip-sync`);
+        job.note = 'Set FAL_API_KEY for lip-sync. Audio files generated only.';
+      } else {
+        let videoUrl;
+        if (videoSource.type === 'url') {
+          videoUrl = videoSource.url;
+        } else {
+          videoUrl = getPublicUrl(videoSource.relativePath, 'inputs');
+        }
+
+        console.log(`[${jobId}] Using lip-sync mode...`);
+        console.log(`[${jobId}] Video URL: ${videoUrl}`);
+
+        videoFiles = await processWithLipSync(jobId, audioFiles, videoUrl, config.outputsDir);
+      }
+    }
+
+    // Step 4: Complete job
+    job.video_files = videoFiles;
     job.status = 'completed';
     job.completed_at = new Date().toISOString();
-    job.output_video_path = outputPath;
-    job.output_video_url = `/outputs/${jobId}_output.mp4`;
+
+    const successfulVideos = videoFiles.filter(v => v.video_file);
+    const failedVideos = videoFiles.filter(v => !v.video_file);
+
+    job.outputs = {
+      video_files: successfulVideos.map(f => ({
+        index: f.index,
+        template_id: f.template_id,
+        video_url: f.video_url,
+        audio_url: f.audio_url,
+        mode: f.mode
+      })),
+      audio_files: audioFiles.map(f => ({
+        index: f.index,
+        template_id: f.template_id,
+        url: f.audio_url
+      })),
+      total_videos: successfulVideos.length,
+      total_audio: audioFiles.length,
+      voice: selectedVoice,
+      quality_mode: qualityMode
+    };
+
+    if (failedVideos.length > 0 && successfulVideos.length > 0) {
+      job.note = `Generated ${successfulVideos.length}/${audioFiles.length} videos. ${failedVideos.length} failed.`;
+      job.failed_items = failedVideos.map(v => ({ index: v.index, error: v.error }));
+    } else if (successfulVideos.length > 0) {
+      job.note = `Successfully generated ${successfulVideos.length} videos (${qualityMode} mode).`;
+    } else if (!job.note) {
+      job.note = `Generated ${audioFiles.length} audio files.`;
+    }
+
     saveJob(jobId, job);
 
-    console.log(`[${jobId}] Job completed successfully!`);
+    console.log(`[${jobId}] Job completed!`);
+    console.log(`[${jobId}] Output: ${successfulVideos.length} videos, ${audioFiles.length} audio files`);
+
     return job;
 
   } catch (error) {

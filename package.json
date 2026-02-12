@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node src/server.js",
     "worker": "node src/worker.js",
-    "dev": "node src/server.js & node src/worker.js"
+    "dev": "node src/server.js & node src/worker.js",
+    "export": "node scripts/export-to-pages.js --all",
+    "export:job": "node scripts/export-to-pages.js"
   },
   "dependencies": {
     "express": "^4.18.2",
