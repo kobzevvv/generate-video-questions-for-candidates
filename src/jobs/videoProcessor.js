@@ -6,6 +6,7 @@ const { generateQuestions } = require('../services/questionGenerator');
 const { generateSpeech } = require('../services/tts');
 const { createLipSyncJob, waitForLipSyncCompletion, downloadOutput } = require('../services/lipSync');
 const { overlayAudio, findTemplateVideo, hasAllTemplates } = require('../services/videoOverlay');
+const { autoSelectVoice } = require('../services/voiceSelector');
 
 /**
  * Quality modes:
@@ -233,7 +234,29 @@ async function processJob(job) {
       console.log(`[${jobId}] Generated ${questions.length} questions`);
     }
 
-    // Step 2: Generate audio for each question
+    // Step 2: Auto-select voice if not specified
+    let voiceId = job.voice_id;
+    let voiceInfo = null;
+
+    if (!voiceId && config.elevenLabsApiKey) {
+      console.log(`[${jobId}] Auto-selecting voice based on context...`);
+      try {
+        voiceInfo = await autoSelectVoice(
+          job.job_description || '',
+          job.speaker_name,
+          job.language
+        );
+        voiceId = voiceInfo.voiceId;
+        job.auto_selected_voice = voiceInfo;
+        saveJob(jobId, job);
+        console.log(`[${jobId}] Auto-selected: ${voiceInfo.voiceName} (${voiceInfo.analysis.accent} ${voiceInfo.analysis.gender})`);
+      } catch (err) {
+        console.error(`[${jobId}] Voice auto-selection failed:`, err.message);
+        // Will fall back to default or OpenAI
+      }
+    }
+
+    // Step 3: Generate audio for each question
     console.log(`[${jobId}] Generating audio for ${questions.length} questions...`);
 
     const audioFiles = [];
@@ -251,8 +274,8 @@ async function processJob(job) {
       const ttsResult = await generateSpeech({
         text: question.text,
         voice: job.voice || selectedVoice,
-        voiceId: job.voice_id, // ElevenLabs voice ID
-        provider: job.tts_provider, // 'openai' or 'elevenlabs'
+        voiceId: voiceId, // Auto-selected or manually specified
+        provider: voiceId ? 'elevenlabs' : job.tts_provider,
         gender: job.gender,
         accent: job.accent,
         age: job.age,
