@@ -5,7 +5,7 @@ const ROOT_DIR = path.join(__dirname, '..');
 
 module.exports = {
   port: parseInt(process.env.PORT || '3000', 10),
-  host: process.env.HOST || 'localhost',
+  host: process.env.HOST || '0.0.0.0',
 
   openaiApiKey: process.env.OPENAI_API_KEY,
   synclabsApiKey: process.env.SYNCLABS_API_KEY, // deprecated, use falApiKey

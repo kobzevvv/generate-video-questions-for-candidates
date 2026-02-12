@@ -3,6 +3,7 @@ const path = require('path');
 const config = require('./config');
 const jobsRouter = require('./routes/jobs');
 const resultsRouter = require('./routes/results');
+const formRouter = require('./routes/form');
 const { ensureDirectories } = require('./utils/fileUtils');
 
 const app = express();
@@ -18,6 +19,7 @@ app.use('/inputs', express.static(config.inputExamplesDir));
 // Routes
 app.use('/api/jobs', jobsRouter);
 app.use('/results', resultsRouter);
+app.use('/form', formRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -28,20 +30,9 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Root info
+// Root - redirect to form
 app.get('/', (req, res) => {
-  res.json({
-    name: 'Video Questions Generator API',
-    version: '1.0.0',
-    endpoints: {
-      'POST /api/jobs': 'Create a new video processing job',
-      'GET /api/jobs/:id': 'Get job status and results (JSON)',
-      'GET /results/:id': 'View results as HTML page',
-      'GET /api/jobs/meta/templates': 'List available prompt templates',
-      'GET /api/jobs/meta/voices': 'List available TTS voices',
-      'GET /api/health': 'Health check'
-    }
-  });
+  res.redirect('/form/');
 });
 
 // Error handler
@@ -55,14 +46,8 @@ ensureDirectories();
 
 app.listen(config.port, config.host, () => {
   console.log(`Server running at http://${config.host}:${config.port}`);
-  console.log(`Outputs served at http://${config.host}:${config.port}/outputs/`);
-  console.log('\nAvailable endpoints:');
-  console.log('  POST /api/jobs          - Create job');
-  console.log('  GET  /api/jobs/:id      - Get job status (JSON)');
-  console.log('  GET  /results/:id       - View results (HTML)');
-  console.log('  GET  /api/jobs/meta/templates - List templates');
-  console.log('  GET  /api/jobs/meta/voices    - List voices');
-  console.log('  GET  /api/health        - Health check');
+  console.log(`Form: http://${config.host}:${config.port}/form/`);
+  console.log(`Results: http://${config.host}:${config.port}/results/`);
 });
 
 module.exports = app;
