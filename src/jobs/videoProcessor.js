@@ -251,6 +251,8 @@ async function processJob(job) {
       const ttsResult = await generateSpeech({
         text: question.text,
         voice: job.voice || selectedVoice,
+        voiceId: job.voice_id, // ElevenLabs voice ID
+        provider: job.tts_provider, // 'openai' or 'elevenlabs'
         gender: job.gender,
         accent: job.accent,
         age: job.age,
@@ -259,7 +261,8 @@ async function processJob(job) {
 
       if (!selectedVoice) {
         selectedVoice = ttsResult.voice;
-        console.log(`[${jobId}]   Voice: ${ttsResult.voice} (${ttsResult.voiceProfile?.gender})`);
+        const providerInfo = ttsResult.provider === 'elevenlabs' ? 'ElevenLabs' : 'OpenAI';
+        console.log(`[${jobId}]   Voice: ${ttsResult.voice} (${providerInfo})`);
       }
 
       audioFiles.push({
@@ -269,7 +272,8 @@ async function processJob(job) {
         audio_file: audioFileName,
         audio_path: audioPath,
         audio_url: `/outputs/${audioFileName}`,
-        voice: ttsResult.voice
+        voice: ttsResult.voice,
+        provider: ttsResult.provider || 'openai'
       });
     }
 

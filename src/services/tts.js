@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const OpenAI = require('openai');
 const config = require('../config');
+const elevenLabsTts = require('./elevenLabsTts');
 
 let openaiClient = null;
 
@@ -98,18 +99,44 @@ async function generateSpeech(options) {
   const {
     text,
     voice = null,
+    voiceId = null, // ElevenLabs voice ID
     gender = null,
     accent = null,
     age = null,
     outputPath,
-    model = 'tts-1-hd'
+    model = 'tts-1-hd',
+    provider = config.ttsProvider || 'openai'
   } = options;
 
   if (!text || text.trim().length === 0) {
     throw new Error('Text is required for TTS');
   }
 
-  // Select voice: explicit voice > matched voice > default
+  // Use ElevenLabs if specified or configured
+  if (provider === 'elevenlabs' || voiceId) {
+    const elevenLabsVoiceId = voiceId || config.elevenLabsVoiceId;
+
+    if (!elevenLabsVoiceId) {
+      throw new Error('ElevenLabs voice ID required. Set ELEVENLABS_VOICE_ID or pass voiceId option.');
+    }
+
+    const result = await elevenLabsTts.generateSpeech({
+      text,
+      voiceId: elevenLabsVoiceId,
+      outputPath
+    });
+
+    return {
+      audioPath: outputPath,
+      voice: elevenLabsVoiceId,
+      voiceProfile: { provider: 'elevenlabs' },
+      model: result.model,
+      textLength: text.length,
+      provider: 'elevenlabs'
+    };
+  }
+
+  // Use OpenAI TTS
   let selectedVoice;
   if (voice && AVAILABLE_VOICES.includes(voice)) {
     selectedVoice = voice;
@@ -134,7 +161,8 @@ async function generateSpeech(options) {
     voice: selectedVoice,
     voiceProfile: VOICE_PROFILES[selectedVoice],
     model,
-    textLength: text.length
+    textLength: text.length,
+    provider: 'openai'
   };
 }
 

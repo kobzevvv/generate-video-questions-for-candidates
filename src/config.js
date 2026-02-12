@@ -8,8 +8,14 @@ module.exports = {
   host: process.env.HOST || '0.0.0.0',
 
   openaiApiKey: process.env.OPENAI_API_KEY,
+  elevenLabsApiKey: process.env.ELEVENLABS_API_KEY,
   synclabsApiKey: process.env.SYNCLABS_API_KEY, // deprecated, use falApiKey
   falApiKey: process.env.FAL_API_KEY,
+
+  // TTS provider: 'openai' or 'elevenlabs'
+  ttsProvider: process.env.TTS_PROVIDER || 'openai',
+  // Default ElevenLabs voice ID (if using elevenlabs)
+  elevenLabsVoiceId: process.env.ELEVENLABS_VOICE_ID || null,
 
   uploadsDir: path.join(ROOT_DIR, process.env.UPLOADS_DIR || 'data/uploads'),
   outputsDir: path.join(ROOT_DIR, process.env.OUTPUTS_DIR || 'data/outputs'),

@@ -19,6 +19,8 @@ router.post('/', (req, res) => {
       job_description,
       prompt_template_id,
       voice,
+      voice_id, // ElevenLabs voice ID
+      tts_provider, // 'openai' or 'elevenlabs'
       language,
       speaker_name,
       audio_url, // For lip-sync when audio is hosted externally
@@ -76,6 +78,8 @@ router.post('/', (req, res) => {
       job_description: job_description || null,
       prompt_template_id: prompt_template_id || null,
       voice: voice || null, // null = auto-select based on gender/accent
+      voice_id: voice_id || null, // ElevenLabs voice ID
+      tts_provider: voice_id ? 'elevenlabs' : (tts_provider || null), // auto-detect if voice_id provided
       language: resolvedLanguage,
       speaker_name: resolvedSpeakerName,
       audio_url: audio_url || null,
