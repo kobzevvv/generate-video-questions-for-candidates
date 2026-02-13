@@ -6,15 +6,15 @@ Input job description:
 {job_description}
 
 Your task:
-1. Identify the mandatory or must-have requirements in the job description.
-2. Generate ONE interview question asking the candidate to confirm they possess these requirements.
-3. Ask the candidate to briefly demonstrate or confirm their experience or qualification with concrete examples where possible.
+1. Identify the mandatory or must-have requirements in the job description (e.g. years of experience, specific certifications, location requirements, language skills).
+2. Generate ONE interview question asking the candidate to simply confirm they possess these requirements.
 
 The question must:
-- politely explain that confirming these requirements helps avoid wasting time later
+- politely explain that confirming these requirements helps ensure we're aligned
 - clearly list or reference the key must-have skills or qualifications
-- ask the candidate to confirm they meet them
-- ask for short practical confirmation or examples
+- ask the candidate to confirm yes or no if they meet them
+- NOT ask for examples or stories (that comes in a later question)
+- keep it short — just a confirmation check
 - sound polite, respectful and non-threatening
 - avoid sounding like a test or interrogation
 - be suitable for spoken video format
