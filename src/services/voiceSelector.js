@@ -6,61 +6,106 @@ const config = require('../config');
  * These are pre-selected for professional interview context
  */
 const VOICE_LIBRARY = [
-  // British English
+  // ========== BRITISH ENGLISH ==========
   { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', accent: 'british', gender: 'male', age: 'middle', description: 'warm, professional British male' },
-  { id: 'ThT5KcBeYPX3keUQqHPh', name: 'Dorothy', accent: 'british', gender: 'female', age: 'middle', description: 'confident British female' },
+  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', accent: 'british', gender: 'male', age: 'middle', description: 'deep British male' },
+  { id: 'ThT5KcBeYPX3keUQqHPh', name: 'Dorothy', accent: 'british', gender: 'female', age: 'young', description: 'pleasant British female' },
+  { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice', accent: 'british', gender: 'female', age: 'middle', description: 'confident British female' },
 
-  // American English
-  { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', accent: 'american', gender: 'female', age: 'young', description: 'friendly American female' },
+  // ========== AMERICAN ENGLISH ==========
+  { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', accent: 'american', gender: 'female', age: 'young', description: 'calm American female' },
+  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda', accent: 'american', gender: 'female', age: 'young', description: 'warm American female' },
+  { id: 'LcfcDJNUP1GQjkzn1xUU', name: 'Emily', accent: 'american', gender: 'female', age: 'young', description: 'calm American female' },
   { id: 'ErXwobaYiN019PkySvjV', name: 'Antoni', accent: 'american', gender: 'male', age: 'young', description: 'professional American male' },
+  { id: 'TxGEqnHWrfWFTfGW9XjX', name: 'Josh', accent: 'american', gender: 'male', age: 'young', description: 'deep American male' },
+  { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam', accent: 'american', gender: 'male', age: 'middle', description: 'deep American male' },
   { id: 'VR6AewLTigWG4xSOukaG', name: 'Arnold', accent: 'american', gender: 'male', age: 'mature', description: 'authoritative American male' },
-  { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam', accent: 'american', gender: 'male', age: 'middle', description: 'clear American male' },
 
-  // Indian English
-  { id: 'TX3LPaxmHKxFdv7VOQHJ', name: 'Liam', accent: 'indian', gender: 'male', age: 'young', description: 'friendly Indian-English male' },
+  // ========== AUSTRALIAN ENGLISH ==========
+  { id: 'ZQe5CZNOzWyzPSCn5a3c', name: 'James', accent: 'australian', gender: 'male', age: 'mature', description: 'calm Australian male' },
+  { id: 'IKne3meq5aSn9XLyUdCD', name: 'Charlie', accent: 'australian', gender: 'male', age: 'middle', description: 'casual Australian male' },
 
-  // Australian English
-  { id: 'ZQe5CZNOzWyzPSCn5a3c', name: 'James', accent: 'australian', gender: 'male', age: 'middle', description: 'friendly Australian male' },
+  // ========== INDIAN ENGLISH ==========
+  { id: 'N2al4jd45e882svx17SU', name: 'Aakash', accent: 'indian', gender: 'male', age: 'middle', description: 'professional Indian male' },
+  { id: 'k7nOSUCadIEwB6fdJmbw', name: 'Ahmed', accent: 'indian', gender: 'male', age: 'middle', description: 'warm professional Indian male' },
+  { id: 'mfMM3ijQgz8QtMeKifko', name: 'Riya', accent: 'indian', gender: 'female', age: 'young', description: 'professional Indian female' },
+  { id: 'pGYsZruQzo8cpdFVZyJc', name: 'Smriti', accent: 'indian', gender: 'female', age: 'middle', description: 'warm Indian female' },
 
-  // Arabic-accented English
-  { id: 'Os2frcqCuUz8b9F93RuI', name: 'Mahmoud', accent: 'arabic', gender: 'male', age: 'middle', description: 'professional Arabic-English male' },
+  // ========== ARABIC / DUBAI / MIDDLE EAST ==========
+  { id: 'G1HOkzin3NMwRHSq60UI', name: 'Chaouki', accent: 'arabic', gender: 'male', age: 'middle', description: 'deep professional Arabic male' },
+  { id: '5Spsi3mCH9e7futpnGE5', name: 'Fares', accent: 'arabic', gender: 'male', age: 'middle', description: 'warm Gulf Arabic male' },
+  { id: 'qi4PkV9c01kb869Vh7Su', name: 'Asmaa', accent: 'arabic', gender: 'female', age: 'young', description: 'gentle Arabic female' },
+  { id: 'a1KZUXKFVFDOb33I1uqr', name: 'Salma', accent: 'arabic', gender: 'female', age: 'young', description: 'young talented Arabic female' },
 
-  // German-accented English
-  { id: 'ODq5zmih8GrVes37Dizd', name: 'Patrick', accent: 'german', gender: 'male', age: 'middle', description: 'clear German-English male' },
+  // ========== RUSSIAN ==========
+  { id: '1qd9R09Ljlx9V1Ok0t5S', name: 'Ivan', accent: 'russian', gender: 'male', age: 'middle', description: 'deep velvety Russian male' },
+  { id: 'kwajW3Xh5svCeKU5ky2S', name: 'Dmitry', accent: 'russian', gender: 'male', age: 'young', description: 'cheerful Russian male' },
+  { id: '8M81RK3MD7u4DOJpu2G5', name: 'Viktoriia', accent: 'russian', gender: 'female', age: 'young', description: 'clear resonant Russian female' },
+  { id: 'C3FusDjPequ6qFchqpzu', name: 'Ekaterina', accent: 'russian', gender: 'female', age: 'middle', description: 'warm engaging Russian female' },
 
-  // Spanish-accented English
-  { id: 'wViXBPUzp2ZZixB1xQuM', name: 'Sofia', accent: 'spanish', gender: 'female', age: 'young', description: 'warm Spanish-English female' },
+  // ========== CHINESE / MANDARIN ==========
+  { id: '4VZIsMPtgggwNg7OXbPY', name: 'James Gao', accent: 'chinese', gender: 'male', age: 'middle', description: 'calm friendly Chinese male' },
+  { id: 'Ixmp8zKRajBp10jLtsrq', name: 'Lazarus', accent: 'chinese', gender: 'male', age: 'young', description: 'neutral Mandarin male' },
+  { id: 'bhJUNIXWQQ94l8eI2VUf', name: 'Amy', accent: 'chinese', gender: 'female', age: 'young', description: 'natural friendly Chinese female' },
+  { id: 'ByhETIclHirOlWnWKhHc', name: 'ShanShan', accent: 'chinese', gender: 'female', age: 'young', description: 'youthful lively Chinese female' },
 
-  // French-accented English
-  { id: 'XB0fDUnXU5powFXDhCwa', name: 'Charlotte', accent: 'french', gender: 'female', age: 'young', description: 'elegant French-English female' },
+  // ========== LATIN AMERICAN SPANISH ==========
+  { id: 'wSFJ1H2XywFI0wLdTylp', name: 'Karim', accent: 'latam', gender: 'male', age: 'young', description: 'neutral Mexican male' },
+  { id: 'W6Z2FAa578IKOGSVo2sA', name: 'Eduardo', accent: 'latam', gender: 'male', age: 'middle', description: 'authentic Mexican male' },
+  { id: 'J4vZAFDEcpenkMp3f3R9', name: 'Valentina', accent: 'latam', gender: 'female', age: 'young', description: 'conversational Colombian female' },
+  { id: 'VmejBeYhbrcTPwDniox7', name: 'Lina', accent: 'latam', gender: 'female', age: 'young', description: 'warm friendly Colombian female' },
 
-  // Neutral/International
-  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella', accent: 'neutral', gender: 'female', age: 'young', description: 'clear neutral female' },
-  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', accent: 'neutral', gender: 'male', age: 'middle', description: 'professional neutral male' },
+  // ========== SPANISH (SPAIN) ==========
+  { id: 'usTmJvQOCyW3nRcZ8OEo', name: 'Dante', accent: 'spanish', gender: 'male', age: 'middle', description: 'dynamic Castilian Spanish male' },
+  { id: '1vLlJCWRhRcfmTewn4cm', name: 'Javier', accent: 'spanish', gender: 'male', age: 'middle', description: 'expressive Spanish male' },
+  { id: 'dHdIIFZMLzs6XfsGtmIP', name: 'Sheila', accent: 'spanish', gender: 'female', age: 'middle', description: 'dynamic Spanish female' },
+
+  // ========== GERMAN ==========
+  { id: 'ODq5zmih8GrVes37Dizd', name: 'Patrick', accent: 'german', gender: 'male', age: 'middle', description: 'clear German male' },
+
+  // ========== FRENCH ==========
+  { id: 'XB0fDUnXU5powFXDhCwa', name: 'Charlotte', accent: 'french', gender: 'female', age: 'young', description: 'elegant French female' },
+
+  // ========== ITALIAN ==========
+  { id: 'zcAOhNBS3c14rBihAFp1', name: 'Giovanni', accent: 'italian', gender: 'male', age: 'young', description: 'Italian-English male' },
+
+  // ========== NEUTRAL / INTERNATIONAL ==========
+  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah', accent: 'neutral', gender: 'female', age: 'young', description: 'soft neutral female' },
+  { id: 'pMsXgVXv3BLzUgSXRplE', name: 'Serena', accent: 'neutral', gender: 'female', age: 'middle', description: 'pleasant neutral female' },
+  { id: 'nPczCjzI2devNBz1zQrb', name: 'Brian', accent: 'neutral', gender: 'male', age: 'middle', description: 'deep neutral male' },
 ];
 
 // Map common name origins to likely accents
 const NAME_ACCENT_MAP = {
   // Indian names
-  indian: ['raj', 'priya', 'amit', 'neha', 'vikram', 'ananya', 'arjun', 'deepa', 'krishna', 'lakshmi', 'ravi', 'sunita', 'arun', 'kavita', 'sanjay', 'meera'],
+  indian: ['raj', 'priya', 'amit', 'neha', 'vikram', 'ananya', 'arjun', 'deepa', 'krishna', 'lakshmi', 'ravi', 'sunita', 'arun', 'kavita', 'sanjay', 'meera', 'aakash', 'riya', 'smriti', 'rahul', 'pooja', 'aditya', 'shreya'],
 
-  // Arabic names
-  arabic: ['ahmed', 'fatima', 'mohammed', 'aisha', 'omar', 'layla', 'hassan', 'sara', 'mahmoud', 'nour', 'khalid', 'yasmin', 'ali', 'hana', 'youssef', 'amira'],
+  // Arabic names (Dubai, UAE, Saudi, Egypt, etc.)
+  arabic: ['ahmed', 'fatima', 'mohammed', 'aisha', 'omar', 'layla', 'hassan', 'sara', 'mahmoud', 'nour', 'khalid', 'yasmin', 'ali', 'hana', 'youssef', 'amira', 'fares', 'salma', 'asmaa', 'rashid', 'maryam', 'sultan', 'noura'],
 
   // British names
-  british: ['william', 'elizabeth', 'james', 'victoria', 'george', 'charlotte', 'harry', 'emma', 'oliver', 'sophia', 'edward', 'alice'],
+  british: ['william', 'elizabeth', 'james', 'victoria', 'george', 'charlotte', 'harry', 'emma', 'oliver', 'sophia', 'edward', 'alice', 'henry', 'margaret'],
 
   // German names
-  german: ['hans', 'greta', 'klaus', 'ingrid', 'wolfgang', 'helga', 'fritz', 'ursula', 'dieter', 'brigitte', 'heinrich', 'anna'],
+  german: ['hans', 'greta', 'klaus', 'ingrid', 'wolfgang', 'helga', 'fritz', 'ursula', 'dieter', 'brigitte', 'heinrich', 'anna', 'stefan', 'katrin'],
 
-  // Spanish names
-  spanish: ['carlos', 'maria', 'jose', 'ana', 'miguel', 'carmen', 'antonio', 'isabel', 'juan', 'sofia', 'pablo', 'lucia', 'diego', 'elena'],
+  // Spanish/Latin American names
+  latam: ['carlos', 'maria', 'jose', 'ana', 'miguel', 'carmen', 'antonio', 'isabel', 'juan', 'pablo', 'lucia', 'diego', 'elena', 'valentina', 'santiago', 'camila', 'alejandro', 'gabriela', 'fernando', 'adriana', 'ricardo', 'natalia'],
+
+  // Spanish (Spain)
+  spanish: ['javier', 'sofia', 'alvaro', 'marta', 'ines', 'gonzalo', 'pilar', 'rafael', 'rocio'],
 
   // French names
-  french: ['pierre', 'marie', 'jean', 'claire', 'louis', 'sophie', 'michel', 'camille', 'francois', 'aurelie', 'antoine', 'juliette'],
+  french: ['pierre', 'marie', 'jean', 'claire', 'louis', 'sophie', 'michel', 'camille', 'francois', 'aurelie', 'antoine', 'juliette', 'laurent', 'celine'],
 
   // Russian names
-  russian: ['ivan', 'natasha', 'dmitry', 'olga', 'sergey', 'anna', 'alexei', 'elena', 'nikolai', 'tatiana', 'vladimir', 'maria', 'andrei', 'ekaterina'],
+  russian: ['ivan', 'natasha', 'dmitry', 'olga', 'sergey', 'alexei', 'elena', 'nikolai', 'tatiana', 'vladimir', 'andrei', 'ekaterina', 'viktor', 'anastasia', 'mikhail', 'irina'],
+
+  // Chinese names
+  chinese: ['wei', 'ming', 'li', 'wang', 'chen', 'zhang', 'liu', 'yang', 'huang', 'zhao', 'xiao', 'jing', 'ying', 'mei', 'hong', 'jun', 'hui', 'lin', 'yu', 'fang'],
+
+  // Italian names
+  italian: ['marco', 'giulia', 'luca', 'francesca', 'matteo', 'chiara', 'lorenzo', 'valentina', 'andrea', 'alessia', 'giovanni', 'sofia'],
 };
 
 /**
@@ -79,9 +124,21 @@ Language: ${language || 'English'}
 
 Based on the job location, company context, speaker name origin, and overall tone, determine:
 
-1. **accent**: The most appropriate English accent. Choose from: american, british, australian, indian, arabic, german, spanish, french, neutral
-   - Consider job location (UK jobs → british, US jobs → american, etc.)
-   - Consider speaker name origin (Indian name → indian accent, Arabic name → arabic accent, etc.)
+1. **accent**: The most appropriate accent. Choose from: american, british, australian, indian, arabic, russian, chinese, latam, spanish, german, french, italian, neutral
+   - Consider job location:
+     * UK/London → british
+     * US/California/New York → american
+     * Dubai/UAE/Saudi/Middle East → arabic
+     * India/Bangalore/Mumbai → indian
+     * Russia/Moscow → russian
+     * China/Beijing/Shanghai/Hong Kong → chinese
+     * Mexico/Colombia/Argentina/Latin America → latam
+     * Spain/Madrid/Barcelona → spanish
+     * Germany/Berlin/Munich → german
+     * France/Paris → french
+     * Italy/Milan/Rome → italian
+     * Australia/Sydney → australian
+   - Consider speaker name origin (Indian name → indian, Arabic name → arabic, Chinese name → chinese, etc.)
    - If unclear, use "neutral" or "american"
 
 2. **gender**: male or female
