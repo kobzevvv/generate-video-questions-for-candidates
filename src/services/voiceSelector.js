@@ -32,8 +32,7 @@ const VOICE_LIBRARY = [
   { id: 'pGYsZruQzo8cpdFVZyJc', name: 'Smriti', accent: 'indian', gender: 'female', age: 'middle', description: 'warm Indian female' },
 
   // ========== ARABIC / DUBAI / MIDDLE EAST ==========
-  { id: 'G1HOkzin3NMwRHSq60UI', name: 'Chaouki', accent: 'arabic', gender: 'male', age: 'middle', description: 'deep professional Arabic male' },
-  { id: '5Spsi3mCH9e7futpnGE5', name: 'Fares', accent: 'arabic', gender: 'male', age: 'middle', description: 'warm Gulf Arabic male' },
+  { id: 'Os2frcqCuUz8b9F93RuI', name: 'Mahmoud', accent: 'arabic', gender: 'male', age: 'middle', description: 'professional Arabic-English male' },
   { id: 'qi4PkV9c01kb869Vh7Su', name: 'Asmaa', accent: 'arabic', gender: 'female', age: 'young', description: 'gentle Arabic female' },
   { id: 'a1KZUXKFVFDOb33I1uqr', name: 'Salma', accent: 'arabic', gender: 'female', age: 'young', description: 'young talented Arabic female' },
 
