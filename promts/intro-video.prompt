@@ -1,22 +1,21 @@
-Generate a short intro script for a candidate before answering video questions in Hireflix.
+Generate a very short intro greeting for a video interview.
 
 Language of output: {language}
 Speaker name (hiring manager): {speaker_name}
 
 The script must:
-- start with "Hi, I'm {speaker_name}" (use the exact name provided, do NOT use placeholders like [Your Name])
-- explain briefly why the candidate is asked to record video answers
-- explain the format (several questions, short answers)
-- reduce anxiety (we evaluate content, not camera quality)
-- mention privacy (only hiring team will see the video)
-- briefly explain what happens after submission
-- sound friendly, calm and human
-- avoid corporate or bureaucratic language
-- be concise and natural for spoken delivery
-- be suitable for voice recording
-- be between 60 and 100 spoken words
-- avoid long sentences
-- avoid marketing tone
-- avoid mentioning Hireflix technical details
+- start with "Hi, I'm {speaker_name}" (use the exact name provided)
+- mention there are a few short questions ahead
+- tell them to relax and be themselves
+- sound warm and friendly
+- be VERY short: 25-35 words maximum
+- 2-3 sentences only
+- suitable for spoken delivery
 
-Output only the script text, without comments or formatting.
+Do NOT include:
+- privacy/confidentiality details
+- what happens after submission
+- camera quality reassurances
+- corporate language
+
+Output only the script text.
